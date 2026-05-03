@@ -17,6 +17,7 @@ pip install dash-social-signin
 ```python
 from dash_social_signin import install_assets
 
+# Point this to your Dash app's assets directory
 install_assets("./assets")
 ```
 
@@ -67,6 +68,8 @@ Set provider credentials as environment variables before running the example:
 export GOOGLE_CLIENT_ID="your-google-client-id"
 export GOOGLE_CLIENT_SECRET="your-google-client-secret"
 ```
+
+You can also use a `.env` file. Use `.env.example` as a guide.
 
 Use the same pattern for other providers, e.g. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`.
 
@@ -203,6 +206,14 @@ def auth_start():
 - Discord
 - Slack
 
+Note: Some providers do not return userinfo. Apple returns `None` for userinfo.
+
+## Connect and contribute
+
+- PayPal: https://www.paypal.com/paypalme/omonbudeemma
+- LinkedIn: https://www.linkedin.com/in/budescode
+
+
 ## Provider config
 
 Each provider accepts:
@@ -218,14 +229,6 @@ Each provider accepts:
 ## Backend exchange
 
 After the redirect, your Dash server should handle the `code` query param and exchange it for tokens using the provider's OAuth token endpoint.
-
-## Build and publish
-
-```bash
-python -m pip install --upgrade build twine
-python -m build
-python -m twine upload dist/*
-```
 
 ## License
 
