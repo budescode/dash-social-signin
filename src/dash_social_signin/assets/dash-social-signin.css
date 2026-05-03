@@ -1,0 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap");
+
+:root {
+  --dss-font-family: "Space Grotesk", "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --dss-text: #0f1419;
+  --dss-bg: #ffffff;
+  --dss-border: rgba(15, 20, 25, 0.15);
+  --dss-shadow: 0 12px 30px rgba(15, 20, 25, 0.08);
+}
+
+.dss-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(360px, 92vw);
+  padding: 12px 16px;
+  margin: 10px 0;
+  font-family: var(--dss-font-family);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dss-text);
+  background: var(--dss-bg);
+  border: 1px solid var(--dss-border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: var(--dss-shadow);
+}
+
+.dss-btn:hover {
+  transform: translateY(-1px);
+}
+
+.dss-btn-google { border-color: #4285f4; }
+.dss-btn-facebook { border-color: #1877f2; }
+.dss-btn-github { border-color: #111111; }
+.dss-btn-x { border-color: #000000; }
+.dss-btn-linkedin { border-color: #0a66c2; }
+.dss-btn-microsoft { border-color: #5e5e5e; }
+.dss-btn-apple { border-color: #000000; }
+.dss-btn-discord { border-color: #5865f2; }
+.dss-btn-slack { border-color: #4a154b; }
