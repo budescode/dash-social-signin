@@ -10,10 +10,11 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-  { name = "Your Name" }
+  { name = "Osakpolor Emmanuel Omonbude" }
 ]
 dependencies = [
   "dash>=2.10",
+  "python-dotenv>=1.0",
   "requests>=2.31"
 ]
 keywords = ["dash", "oauth", "social", "signin", "frontend"]
@@ -26,8 +27,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your/repo"
-Issues = "https://github.com/your/repo/issues"
+Homepage = "https://github.com/budescode/dash-social-signin"
+Issues = "https://github.com/budescode/dash-social-signin/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

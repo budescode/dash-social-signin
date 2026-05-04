@@ -163,6 +163,15 @@
     init();
   }
 
+  // Re-run init when Dash injects layout nodes after DOMContentLoaded.
+  if (typeof MutationObserver !== "undefined") {
+    var observer = new MutationObserver(function () {
+      init();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   window.DashSocialSignin = {
     buildAuthUrl: buildAuthUrl
   };

@@ -1,4 +1,6 @@
 import os
+
+from dotenv import load_dotenv
 from dash import Dash, html
 from flask import jsonify, redirect, request, session
 
@@ -12,12 +14,17 @@ from dash_social_signin import (
 )
 
 HERE = os.path.dirname(__file__)
+load_dotenv(os.path.join(HERE, ".env"))
 ASSETS_DIR = os.path.join(HERE, "assets")
 
 install_assets(ASSETS_DIR)
 
 app = Dash(__name__, assets_folder=ASSETS_DIR)
 app.server.secret_key = os.environ.get("DASH_SOCIAL_SIGNIN_SECRET", "dev-only")
+
+YOUR_GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+
+BASE_URL = "http://localhost:8050"
 
 PROVIDER_ENV = {
     "google": ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
@@ -50,7 +57,7 @@ def auth_callback():
     if not client_id:
         return "Missing client ID", 400
 
-    redirect_uri = f"http://localhost:8050/auth/callback?provider={provider}"
+    redirect_uri = f"{BASE_URL}/auth/callback?provider={provider}"
     code_verifier = session.pop(f"pkce_verifier:{provider}", None)
 
     tokens, userinfo = verify_oauth_callback(
@@ -76,7 +83,7 @@ def auth_start():
     if not client_id:
         return "Missing client ID", 400
 
-    redirect_uri = f"http://localhost:8050/auth/callback?provider={provider}"
+    redirect_uri = f"{BASE_URL}/auth/callback?provider={provider}"
     scope = request.args.get("scope")
     state = request.args.get("state")
     response_type = request.args.get("response_type", "code")
@@ -96,6 +103,8 @@ def auth_start():
     )
 
     return redirect(auth_url)
+    
+
 
 app.layout = html.Div(
     [
@@ -104,66 +113,66 @@ app.layout = html.Div(
             {
                 "providers": {
                     "google": {
-                        "clientId": "YOUR_GOOGLE_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=google",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "clientId": YOUR_GOOGLE_CLIENT_ID,
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=google",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "google"},
                         "scope": "openid email profile",
                         "state": "abc123",
                     },
                     "facebook": {
                         "clientId": "YOUR_FACEBOOK_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=facebook",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=facebook",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "facebook"},
                         "scope": "public_profile,email",
                     },
                     "github": {
                         "clientId": "YOUR_GITHUB_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=github",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=github",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "github"},
                         "scope": "read:user user:email",
                     },
                     "x": {
                         "clientId": "YOUR_X_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=x",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=x",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "x"},
                         "scope": "tweet.read users.read offline.access",
                     },
                     "linkedin": {
                         "clientId": "YOUR_LINKEDIN_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=linkedin",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=linkedin",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "linkedin"},
                         "scope": "r_liteprofile r_emailaddress",
                     },
                     "microsoft": {
                         "clientId": "YOUR_MICROSOFT_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=microsoft",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=microsoft",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "microsoft"},
                         "scope": "openid email profile",
                     },
                     "apple": {
                         "clientId": "YOUR_APPLE_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=apple",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=apple",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "apple"},
                         "scope": "name email",
                     },
                     "discord": {
                         "clientId": "YOUR_DISCORD_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=discord",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=discord",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "discord"},
                         "scope": "identify email",
                     },
                     "slack": {
                         "clientId": "YOUR_SLACK_CLIENT_ID",
-                        "redirectUri": "http://localhost:8050/auth/callback?provider=slack",
-                        "authUrl": "http://localhost:8050/auth/start",
+                        "redirectUri": f"{BASE_URL}/auth/callback?provider=slack",
+                        "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "slack"},
                         "scope": "openid profile email",
                     },
@@ -175,4 +184,4 @@ app.layout = html.Div(
 )
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)

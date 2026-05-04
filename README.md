@@ -71,6 +71,12 @@ export GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
 You can also use a `.env` file. Use `.env.example` as a guide.
 
+To load `.env` automatically in the example app:
+
+```bash
+pip install python-dotenv
+```
+
 Use the same pattern for other providers, e.g. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`.
 
 If you use the PKCE start route, set `DASH_SOCIAL_SIGNIN_SECRET` to enable Flask sessions. See .env.example for the full list.
@@ -233,3 +239,185 @@ After the redirect, your Dash server should handle the `code` query param and ex
 ## License
 
 MIT
+
+## Provider credential setup (step-by-step)
+
+Use these steps to create credentials for each provider. The redirect URL must match exactly.
+For local dev, the pattern is:
+
+- Redirect URI: http://localhost:8050/auth/callback?provider=PROVIDER
+- JavaScript origin (if required by the provider): http://localhost:8050
+
+If you are using a tunnel, replace `http://localhost:8050` with your tunnel origin and
+update the `redirectUri` in [examples/app.py](examples/app.py) to match exactly.
+
+### Google
+
+Env vars:
+
+```bash
+export GOOGLE_CLIENT_ID="your-google-client-id"
+export GOOGLE_CLIENT_SECRET="your-google-client-secret"
+```
+
+Alternatively, add these to `.env` (the example app loads `examples/.env` automatically).
+
+Steps:
+
+1) Open [Google Cloud Console](https://console.cloud.google.com/) and select (or create) a project.
+2) Go to OAuth consent screen, set the app name and required fields, and save.
+3) Go to Credentials -> Create credentials -> OAuth client ID,
+   or open https://console.cloud.google.com/auth/clients/create
+4) Choose Application type: Web application.
+5) Add Authorized JavaScript origins:
+    - http://localhost:8050
+6) Add Authorized redirect URIs:
+    - http://localhost:8050/auth/callback?provider=google
+7) Save and copy the Client ID and Client Secret.
+
+Screenshots (optional):
+
+- OAuth consent screen setup
+
+![Google project selection](docs/screenshots/google/1_select_create_project.png)
+
+- Create OAuth client ID (Web application)
+
+![Google OAuth consent screen](docs/screenshots/google/2_oauth_consent_screen.png)
+
+- Authorized redirect URIs section
+
+![Google OAuth client creation](docs/screenshots/google/3_create_oauth_client.png)
+
+### Facebook
+
+Env vars:
+
+```bash
+export FACEBOOK_CLIENT_ID="your-facebook-app-id"
+export FACEBOOK_CLIENT_SECRET="your-facebook-app-secret"
+```
+
+Steps:
+
+1) Open Meta for Developers and create an app.
+2) Add the Facebook Login product.
+3) In Facebook Login settings, add Valid OAuth Redirect URIs:
+    - http://localhost:8050/auth/callback?provider=facebook
+4) In App settings -> Basic, copy App ID and App Secret.
+
+### GitHub
+
+Env vars:
+
+```bash
+export GITHUB_CLIENT_ID="your-github-client-id"
+export GITHUB_CLIENT_SECRET="your-github-client-secret"
+```
+
+Steps:
+
+1) Go to GitHub Settings -> Developer settings -> OAuth Apps.
+2) Click New OAuth App.
+3) Set Authorization callback URL:
+    - http://localhost:8050/auth/callback?provider=github
+4) Save and copy Client ID and Client Secret.
+
+### X (Twitter)
+
+Env vars:
+
+```bash
+export X_CLIENT_ID="your-x-client-id"
+export X_CLIENT_SECRET="your-x-client-secret"
+```
+
+Steps:
+
+1) Open the X Developer Portal and create a project/app.
+2) Enable OAuth 2.0 (PKCE recommended).
+3) Add Callback URL:
+    - http://localhost:8050/auth/callback?provider=x
+4) Save and copy Client ID and Client Secret.
+
+### LinkedIn
+
+Env vars:
+
+```bash
+export LINKEDIN_CLIENT_ID="your-linkedin-client-id"
+export LINKEDIN_CLIENT_SECRET="your-linkedin-client-secret"
+```
+
+Steps:
+
+1) Go to LinkedIn Developers and create an app.
+2) In Auth settings, add Authorized redirect URLs:
+    - http://localhost:8050/auth/callback?provider=linkedin
+3) Copy Client ID and Client Secret.
+
+### Microsoft
+
+Env vars:
+
+```bash
+export MICROSOFT_CLIENT_ID="your-microsoft-client-id"
+export MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
+```
+
+Steps:
+
+1) Go to Azure Portal -> App registrations -> New registration.
+2) Add a Web platform and set Redirect URI:
+    - http://localhost:8050/auth/callback?provider=microsoft
+3) Save and copy Application (client) ID.
+4) Create a client secret under Certificates & secrets.
+
+### Apple
+
+Env vars:
+
+```bash
+export APPLE_CLIENT_ID="your-apple-service-id"
+export APPLE_CLIENT_SECRET="your-apple-client-secret"
+```
+
+Steps:
+
+1) Go to Apple Developer -> Certificates, Identifiers & Profiles.
+2) Create a Services ID and enable Sign In with Apple.
+3) Add Return URL:
+    - http://localhost:8050/auth/callback?provider=apple
+4) Generate a client secret (JWT) for the Services ID.
+
+### Discord
+
+Env vars:
+
+```bash
+export DISCORD_CLIENT_ID="your-discord-client-id"
+export DISCORD_CLIENT_SECRET="your-discord-client-secret"
+```
+
+Steps:
+
+1) Go to Discord Developer Portal and create an application.
+2) In OAuth2 settings, add Redirects:
+    - http://localhost:8050/auth/callback?provider=discord
+3) Copy Client ID and Client Secret.
+
+### Slack
+
+Env vars:
+
+```bash
+export SLACK_CLIENT_ID="your-slack-client-id"
+export SLACK_CLIENT_SECRET="your-slack-client-secret"
+```
+
+Steps:
+
+1) Go to Slack API and create an app.
+2) In OAuth & Permissions, add Redirect URLs:
+    - http://localhost:8050/auth/callback?provider=slack
+3) Copy Client ID and Client Secret.
