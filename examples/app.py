@@ -11,6 +11,9 @@
 #    and set a session cookie tied to the authenticated user instead.
 # =============================================================================
 
+# Install example dependencies:
+# pip install dash-social-signin[examples]
+
 import json
 import os
 import secrets

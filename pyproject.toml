@@ -14,7 +14,6 @@ authors = [
 ]
 dependencies = [
   "dash>=4.1.0",
-  "python-dotenv>=1.2.2",
   "requests>=2.33.1"
 ]
 keywords = ["dash", "oauth", "social", "signin", "frontend"]
@@ -29,6 +28,12 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/budescode/dash-social-signin"
 Issues = "https://github.com/budescode/dash-social-signin/issues"
+
+[project.optional-dependencies]
+examples = [
+  "python-dotenv>=1.2.2",
+  "PyJWT>=2.12.1"
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
