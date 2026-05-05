@@ -29,12 +29,14 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
     "x": {
         "auth_url": "https://twitter.com/i/oauth2/authorize",
         "token_url": "https://api.twitter.com/2/oauth2/token",
+        "token_auth": "basic",
         "userinfo_url": "https://api.twitter.com/2/users/me",
     },
     "linkedin": {
         "auth_url": "https://www.linkedin.com/oauth/v2/authorization",
         "token_url": "https://www.linkedin.com/oauth/v2/accessToken",
         "userinfo_url": "https://api.linkedin.com/v2/userinfo",
+        "pkce": False,  # requires opt-in via LinkedIn support
     },
     "microsoft": {
         "auth_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
@@ -45,6 +47,7 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
         "auth_url": "https://appleid.apple.com/auth/authorize",
         "token_url": "https://appleid.apple.com/auth/token",
         "userinfo_url": None,
+        "extra_auth_params": {"response_mode": "form_post"},
     },
     "discord": {
         "auth_url": "https://discord.com/api/oauth2/authorize",
@@ -52,7 +55,7 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
         "userinfo_url": "https://discord.com/api/users/@me",
     },
     "slack": {
-        "auth_url": "https://slack.com/oauth/v2/authorize",
+        "auth_url": "https://slack.com/openid/connect/authorize",
         "token_url": "https://slack.com/api/openid.connect.token",
         "userinfo_url": "https://slack.com/api/openid.connect.userInfo",
     },
@@ -105,6 +108,9 @@ def build_authorize_url(
         params["code_challenge"] = code_challenge
         params["code_challenge_method"] = code_challenge_method
 
+    if config.get("extra_auth_params"):
+        params.update(config["extra_auth_params"])
+
     if extra_params:
         params.update(extra_params)
 
@@ -126,15 +132,17 @@ def exchange_code_for_tokens(
     if not config:
         raise ValueError(f"Unsupported provider: {provider}")
 
+    use_basic_auth = config.get("token_auth") == "basic"
+
     data: Dict[str, str] = {
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": redirect_uri,
-        "client_id": client_id,
     }
 
-    if client_secret:
-        data["client_secret"] = client_secret
+    # Only put client_id in body when not using Basic Auth (avoid duplicate credentials)
+    if not use_basic_auth:
+        data["client_id"] = client_id
 
     if code_verifier:
         data["code_verifier"] = code_verifier
@@ -144,7 +152,13 @@ def exchange_code_for_tokens(
 
     headers = dict(config.get("token_headers", {}))
 
-    resp = requests.post(config["token_url"], data=data, headers=headers, timeout=timeout)
+    auth = None
+    if use_basic_auth:
+        auth = (client_id, client_secret or "")
+    elif client_secret:
+        data["client_secret"] = client_secret
+
+    resp = requests.post(config["token_url"], data=data, headers=headers, auth=auth, timeout=timeout)
     resp.raise_for_status()
     return resp.json()
 

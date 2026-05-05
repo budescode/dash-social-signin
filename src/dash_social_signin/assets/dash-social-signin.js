@@ -24,7 +24,7 @@
     },
     linkedin: {
       authUrl: "https://www.linkedin.com/oauth/v2/authorization",
-      scope: "r_liteprofile r_emailaddress",
+      scope: "openid profile email",
       responseType: "code"
     },
     microsoft: {
@@ -43,7 +43,7 @@
       responseType: "code"
     },
     slack: {
-      authUrl: "https://slack.com/oauth/v2/authorize",
+      authUrl: "https://slack.com/openid/connect/authorize",
       scope: "openid profile email",
       responseType: "code"
     }

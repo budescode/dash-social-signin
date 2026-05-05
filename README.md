@@ -81,6 +81,16 @@ Use the same pattern for other providers, e.g. `GITHUB_CLIENT_ID` / `GITHUB_CLIE
 
 If you use the PKCE start route, set `DASH_SOCIAL_SIGNIN_SECRET` to enable Flask sessions. See .env.example for the full list.
 
+Set `BASE_URL` to match your deployment origin. Defaults to `http://localhost:8050` if not set:
+
+```bash
+# local dev
+BASE_URL=http://localhost:8050
+
+# tunnel or production
+BASE_URL=https://your-tunnel-or-domain.com
+```
+
 ```bash
 python examples/app.py
 ```
@@ -275,20 +285,6 @@ Steps:
     - http://localhost:8050/auth/callback?provider=google
 7) Save and copy the Client ID and Client Secret.
 
-Screenshots (optional):
-
-- OAuth consent screen setup
-
-![Google project selection](docs/screenshots/google/1_select_create_project.png)
-
-- Create OAuth client ID (Web application)
-
-![Google OAuth consent screen](docs/screenshots/google/2_oauth_consent_screen.png)
-
-- Authorized redirect URIs section
-
-![Google OAuth client creation](docs/screenshots/google/3_create_oauth_client.png)
-
 ### Facebook
 
 Env vars:
@@ -301,10 +297,11 @@ export FACEBOOK_CLIENT_SECRET="your-facebook-app-secret"
 Steps:
 
 1) Open Meta for Developers and create an app.
-2) Add the Facebook Login product.
-3) In Facebook Login settings, add Valid OAuth Redirect URIs:
+2) During app creation, select the "Authenticate and request data from users with Facebook Login" use case.
+3) Add the Facebook Login product (if it is not already added).
+4) In Facebook Login settings, add Valid OAuth Redirect URIs:
     - http://localhost:8050/auth/callback?provider=facebook
-4) In App settings -> Basic, copy App ID and App Secret.
+5) In App settings -> Basic, copy App ID and App Secret.
 
 ### GitHub
 
@@ -334,11 +331,55 @@ export X_CLIENT_SECRET="your-x-client-secret"
 
 Steps:
 
-1) Open the X Developer Portal and create a project/app.
+1) Open the [X Developer Portal](https://console.x.com/) and create a project/app.
 2) Enable OAuth 2.0 (PKCE recommended).
 3) Add Callback URL:
     - http://localhost:8050/auth/callback?provider=x
 4) Save and copy Client ID and Client Secret.
+
+Notes:
+
+- X OAuth2 Authorization Code flow requires PKCE. Use the `/auth/start` route and ensure
+    the stored `code_verifier` is sent on the token exchange.
+- X requires HTTP Basic Auth (client ID and secret as `Authorization: Basic ...`) on the
+    token endpoint — the library handles this automatically.
+- If you see "Something went wrong" on the consent screen, ensure a `state` parameter is
+    included in the authorization request. X requires it — the `/auth/start` route generates
+    one automatically if you don't supply one.
+
+PKCE wiring (example):
+
+```python
+@app.server.route("/auth/start")
+def auth_start():
+    provider = request.args.get("provider", "x")
+    verifier = build_pkce_verifier()
+    session[f"pkce_verifier:{provider}"] = verifier
+    challenge = build_pkce_challenge(verifier)
+
+    auth_url = build_authorize_url(
+        provider=provider,
+        client_id="YOUR_X_CLIENT_ID",
+        redirect_uri=f"https://your.app/auth/callback?provider={provider}",
+        scope="tweet.read users.read",
+        code_challenge=challenge,
+    )
+    return redirect(auth_url)
+
+@app.server.route("/auth/callback")
+def auth_callback():
+    provider = request.args.get("provider", "x")
+    code = request.args.get("code")
+    verifier = session.pop(f"pkce_verifier:{provider}", None)
+    return verify_oauth_callback(
+        provider=provider,
+        code=code,
+        redirect_uri=f"https://your.app/auth/callback?provider={provider}",
+        client_id="YOUR_X_CLIENT_ID",
+        client_secret="YOUR_X_CLIENT_SECRET",
+        code_verifier=verifier,
+    )
+```
 
 ### LinkedIn
 
@@ -351,10 +392,19 @@ export LINKEDIN_CLIENT_SECRET="your-linkedin-client-secret"
 
 Steps:
 
-1) Go to LinkedIn Developers and create an app.
+1) Go to [LinkedIn Developers](https://developer.linkedin.com/) and create an app.
 2) In Auth settings, add Authorized redirect URLs:
     - http://localhost:8050/auth/callback?provider=linkedin
 3) Copy Client ID and Client Secret.
+
+Notes:
+
+- LinkedIn uses `client_id` and `client_secret` in the POST body for token exchange — not HTTP Basic Auth.
+- PKCE is **not enabled by default** for LinkedIn apps. It is only available for native clients and requires
+  explicit activation by contacting LinkedIn. For web apps with a `client_secret`, PKCE is not needed.
+  The library disables PKCE for LinkedIn automatically.
+- Per [LinkedIn's docs](https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow-native): *"Once you have the app created, please reach out to your point of contact at
+  LinkedIn, and we will enable PKCE OAuth 2 flow for your app."*
 
 ### Microsoft
 
@@ -384,11 +434,40 @@ export APPLE_CLIENT_SECRET="your-apple-client-secret"
 
 Steps:
 
-1) Go to Apple Developer -> Certificates, Identifiers & Profiles.
-2) Create a Services ID and enable Sign In with Apple.
-3) Add Return URL:
-    - http://localhost:8050/auth/callback?provider=apple
-4) Generate a client secret (JWT) for the Services ID.
+1) Go to [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) -> Certificates, Identifiers & Profiles.
+2) Create an **App ID** (type: App) and enable the **Sign In with Apple** capability.
+3) Create a **Services ID** and link it to the App ID above. The Services ID identifier
+   (e.g. `com.yourname.appname`) becomes your `APPLE_CLIENT_ID`.
+4) In the Services ID, enable Sign In with Apple and configure:
+    - Domain: `your-tunnel-or-domain.com` (no `https://`)
+    - Return URL: `https://your-tunnel-or-domain.com/auth/callback?provider=apple`
+5) Go to **Keys**, create a key with **Sign In with Apple** enabled, and download the `.p8` file.
+   Note the **Key ID** and your **Team ID** (shown top-right in the portal).
+6) Generate `APPLE_CLIENT_SECRET` as a JWT using the `.p8` key — it expires after 6 months max:
+
+```python
+import jwt, time
+
+team_id = "YOUR_TEAM_ID"
+client_id = "YOUR_SERVICES_ID"   # same as APPLE_CLIENT_ID
+key_id = "YOUR_KEY_ID"
+private_key = open("AuthKey_XXXXXXXXXX.p8").read()
+
+payload = {
+    "iss": team_id,
+    "iat": int(time.time()),
+    "exp": int(time.time()) + 86400 * 180,  # max 6 months
+    "aud": "https://appleid.apple.com",
+    "sub": client_id,
+}
+
+secret = jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
+print(secret)
+```
+
+Install `PyJWT` and `cryptography` first: `pip install PyJWT cryptography`
+
+The printed value is your `APPLE_CLIENT_SECRET`. Regenerate it before it expires.
 
 ### Discord
 
