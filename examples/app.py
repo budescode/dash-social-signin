@@ -1,5 +1,19 @@
+# =============================================================================
+# DEMO ONLY — NOT PRODUCTION-READY
+#
+# Before deploying this app, you must:
+#
+# 1. Apple sign-in: replace the unverified jwt.decode() with proper id_token
+#    signature verification using Apple's public keys:
+#    https://appleid.apple.com/auth/keys
+#
+# 2. All providers: never return tokens to the client. Store them server-side
+#    and set a session cookie tied to the authenticated user instead.
+# =============================================================================
+
 import os
 import secrets
+import warnings
 
 from dotenv import load_dotenv
 from dash import Dash, html
@@ -22,22 +36,17 @@ ASSETS_DIR = os.path.join(HERE, "assets")
 install_assets(ASSETS_DIR)
 
 app = Dash(__name__, assets_folder=ASSETS_DIR)
-app.server.secret_key = os.environ.get("DASH_SOCIAL_SIGNIN_SECRET", "dev-only")
 
-CLIENT_IDS = {
-    provider: os.environ.get(env[0], "")
-    for provider, env in {
-        "google": ("GOOGLE_CLIENT_ID", ""),
-        "facebook": ("FACEBOOK_CLIENT_ID", ""),
-        "github": ("GITHUB_CLIENT_ID", ""),
-        "x": ("X_CLIENT_ID", ""),
-        "linkedin": ("LINKEDIN_CLIENT_ID", ""),
-        "microsoft": ("MICROSOFT_CLIENT_ID", ""),
-        "apple": ("APPLE_CLIENT_ID", ""),
-        "discord": ("DISCORD_CLIENT_ID", ""),
-        "slack": ("SLACK_CLIENT_ID", ""),
-    }.items()
-}
+# Warn if secret not set — never fall back to a hardcoded value in production
+_secret = os.environ.get("DASH_SOCIAL_SIGNIN_SECRET")
+if not _secret:
+    warnings.warn(
+        "DASH_SOCIAL_SIGNIN_SECRET is not set. Using a random key — sessions will not "
+        "persist across restarts. Set this in your .env for production.",
+        stacklevel=1,
+    )
+    _secret = secrets.token_hex(32)
+app.server.secret_key = _secret
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8050")
 
@@ -53,6 +62,10 @@ PROVIDER_ENV = {
     "slack": ("SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"),
 }
 
+CLIENT_IDS = {p: os.environ.get(env[0], "") for p, env in PROVIDER_ENV.items()}
+
+ALLOWED_PROVIDERS = set(PROVIDER_CONFIG.keys())
+
 
 def _get_creds(provider: str):
     env = PROVIDER_ENV.get(provider)
@@ -67,8 +80,17 @@ def auth_callback():
     get_param = lambda k: request.args.get(k) or request.form.get(k)
     provider = get_param("provider")
     code = get_param("code")
-    if not provider or not code:
-        return "Missing provider or code", 400
+
+    if not provider or provider not in ALLOWED_PROVIDERS:
+        return "Invalid provider", 400
+    if not code:
+        return "Missing code", 400
+
+    # Validate state to prevent CSRF
+    returned_state = get_param("state")
+    expected_state = session.pop(f"oauth_state:{provider}", None)
+    if expected_state and returned_state != expected_state:
+        return "Invalid state parameter", 400
 
     client_id, client_secret = _get_creds(provider)
     if not client_id:
@@ -87,11 +109,14 @@ def auth_callback():
             code_verifier=code_verifier,
         )
     except Exception as e:
-        body = getattr(getattr(e, "response", None), "text", None)
-        return jsonify({"error": str(e), "response_body": body, "code_verifier_present": code_verifier is not None}), 400
+        # Only expose error details in debug mode
+        if app.server.debug:
+            body = getattr(getattr(e, "response", None), "text", None)
+            return jsonify({"error": str(e), "response_body": body}), 400
+        return jsonify({"error": "Authentication failed"}), 400
 
     # Apple has no userinfo endpoint — decode the id_token instead.
-    # Note: this skips signature verification. In production, verify against
+    # WARNING: this skips signature verification. In production, verify against
     # Apple's public keys: https://appleid.apple.com/auth/keys
     if userinfo is None and tokens.get("id_token"):
         try:
@@ -107,8 +132,9 @@ def auth_callback():
 @app.server.route("/auth/start")
 def auth_start():
     provider = request.args.get("provider")
-    if not provider:
-        return "Missing provider", 400
+
+    if not provider or provider not in ALLOWED_PROVIDERS:
+        return "Invalid provider", 400
 
     client_id, _client_secret = _get_creds(provider)
     if not client_id:
@@ -116,8 +142,13 @@ def auth_start():
 
     redirect_uri = f"{BASE_URL}/auth/callback?provider={provider}"
     scope = request.args.get("scope")
-    state = request.args.get("state") or secrets.token_urlsafe(16)
-    response_type = request.args.get("response_type", "code")
+
+    # Generate and store state for CSRF protection
+    state = secrets.token_urlsafe(16)
+    session[f"oauth_state:{provider}"] = state
+
+    # Always use authorization code flow — never implicit
+    response_type = "code"
 
     use_pkce = PROVIDER_CONFIG.get(provider, {}).get("pkce", True)
     challenge = None
@@ -137,7 +168,6 @@ def auth_start():
     )
 
     return redirect(auth_url)
-    
 
 
 app.layout = html.Div(
@@ -152,7 +182,6 @@ app.layout = html.Div(
                         "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "google"},
                         "scope": "openid email profile",
-                        "state": "abc123",
                     },
                     "facebook": {
                         "clientId": CLIENT_IDS["facebook"],

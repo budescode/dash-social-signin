@@ -16,7 +16,6 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
         "auth_url": "https://www.facebook.com/v18.0/dialog/oauth",
         "token_url": "https://graph.facebook.com/v18.0/oauth/access_token",
         "userinfo_url": "https://graph.facebook.com/me",
-        "userinfo_token_param": "access_token",
         "userinfo_params": {"fields": "id,name,email"},
     },
     "github": {
@@ -29,7 +28,7 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
     "x": {
         "auth_url": "https://twitter.com/i/oauth2/authorize",
         "token_url": "https://api.twitter.com/2/oauth2/token",
-        "token_auth": "basic",
+        "token_auth": "basic",  # X requires HTTP Basic Auth on the token endpoint
         "userinfo_url": "https://api.twitter.com/2/users/me",
     },
     "linkedin": {
@@ -47,7 +46,7 @@ PROVIDER_CONFIG: Dict[str, Dict[str, Any]] = {
         "auth_url": "https://appleid.apple.com/auth/authorize",
         "token_url": "https://appleid.apple.com/auth/token",
         "userinfo_url": None,
-        "extra_auth_params": {"response_mode": "form_post"},
+        "extra_auth_params": {"response_mode": "form_post"},  # required when requesting name or email scope
     },
     "discord": {
         "auth_url": "https://discord.com/api/oauth2/authorize",

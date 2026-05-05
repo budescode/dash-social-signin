@@ -163,10 +163,18 @@
     init();
   }
 
-  // Re-run init when Dash injects layout nodes after DOMContentLoaded.
+  // Re-run init only when new element nodes are added to the DOM.
   if (typeof MutationObserver !== "undefined") {
-    var observer = new MutationObserver(function () {
-      init();
+    var observer = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var added = mutations[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          if (added[j].nodeType === 1) {
+            init();
+            return;
+          }
+        }
+      }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
