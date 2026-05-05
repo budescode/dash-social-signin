@@ -13,9 +13,9 @@ authors = [
   { name = "Osakpolor Emmanuel Omonbude" }
 ]
 dependencies = [
-  "dash>=2.10",
-  "python-dotenv>=1.0",
-  "requests>=2.31"
+  "dash>=4.1.0",
+  "python-dotenv>=1.2.2",
+  "requests>=2.33.1"
 ]
 keywords = ["dash", "oauth", "social", "signin", "frontend"]
 classifiers = [

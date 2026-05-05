@@ -11,6 +11,7 @@
 #    and set a session cookie tied to the authenticated user instead.
 # =============================================================================
 
+import json
 import os
 import secrets
 import warnings
@@ -98,6 +99,7 @@ def auth_callback():
 
     redirect_uri = f"{BASE_URL}/auth/callback?provider={provider}"
     code_verifier = session.pop(f"pkce_verifier:{provider}", None)
+    userinfo_params = session.pop(f"userinfo_params:{provider}", None)
 
     try:
         tokens, userinfo = verify_oauth_callback(
@@ -107,6 +109,7 @@ def auth_callback():
             client_id=client_id,
             client_secret=client_secret,
             code_verifier=code_verifier,
+            extra_userinfo_params=userinfo_params,
         )
     except Exception as e:
         # Only expose error details in debug mode
@@ -142,6 +145,13 @@ def auth_start():
 
     redirect_uri = f"{BASE_URL}/auth/callback?provider={provider}"
     scope = request.args.get("scope")
+    userinfo_params_raw = request.args.get("userinfo_params")
+    if userinfo_params_raw:
+        try:
+            userinfo_params = json.loads(userinfo_params_raw)
+        except json.JSONDecodeError:
+            return "Invalid userinfo_params JSON", 400
+        session[f"userinfo_params:{provider}"] = userinfo_params
 
     # Generate and store state for CSRF protection
     state = secrets.token_urlsafe(16)
@@ -184,11 +194,16 @@ app.layout = html.Div(
                         "scope": "openid email profile",
                     },
                     "facebook": {
+                        # Permission names (scope) differ from fields on /me.
+                        # Examples: user_gender -> gender, user_hometown -> hometown.
+                        # Docs (userinfoParams): https://developers.facebook.com/docs/graph-api/reference/user/
+                        # Docs (scope): https://developers.facebook.com/docs/permissions
                         "clientId": CLIENT_IDS["facebook"],
                         "redirectUri": f"{BASE_URL}/auth/callback?provider=facebook",
                         "authUrl": f"{BASE_URL}/auth/start",
                         "extraParams": {"provider": "facebook"},
-                        "scope": "public_profile,email",
+                        "scope": "public_profile,email,user_birthday,user_gender,user_hometown",
+                        "userinfoParams": {"fields": "id,name,email,birthday,gender,hometown,first_name,last_name"},
                     },
                     "github": {
                         "clientId": CLIENT_IDS["github"],

@@ -240,7 +240,12 @@ Each provider accepts:
 - `state` (optional)
 - `responseType` (optional, default `code`)
 - `extraParams` (optional dict of additional query params)
+- `userinfoParams` (optional dict of params to send to your backend start route)
 - `authUrl` (optional override)
+
+When using a backend start route (like `/auth/start`), `userinfoParams` is serialized to
+the `userinfo_params` query param. The example app reads this value, stores it in the
+session, and passes it into `verify_oauth_callback` as `extra_userinfo_params`.
 
 ## Backend exchange
 

@@ -94,6 +94,10 @@
       params.state = cfg.state;
     }
 
+    if (cfg.userinfoParams) {
+      params.userinfo_params = JSON.stringify(cfg.userinfoParams);
+    }
+
     var extra = cfg.extraParams || {};
     Object.keys(extra).forEach(function (key) {
       params[key] = extra[key];
