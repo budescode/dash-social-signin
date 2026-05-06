@@ -81,7 +81,7 @@ The example includes placeholders for all supported providers.
 Install example extras:
 
 ```bash
-pip install dash-social-signin[examples]
+pip install "dash-social-signin[examples]"
 ```
 
 Set provider credentials as environment variables before running the example:
