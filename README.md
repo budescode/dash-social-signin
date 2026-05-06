@@ -1,6 +1,6 @@
 # Dash Social Signin
 
-Social sign-in helpers for Dash. This package ships vanilla JS/CSS assets that render OAuth provider buttons and redirect the user to the provider authorization endpoint, plus server-side helpers to verify the OAuth callback.
+A streamlined social sign-in toolkit for Dash. This package includes high-performance vanilla JS/CSS assets for rendering OAuth provider buttons and comprehensive server-side helpers for managing authorization endpoints and token verification. Designed to be lightweight, framework-agnostic on the frontend, and easy to integrate with existing Dash layouts.
 
 > Note: OAuth requires a backend to exchange the authorization `code` for tokens. In Dash, the backend is your Dash server (Flask).
 
