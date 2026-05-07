@@ -1,0 +1,2 @@
+dash-social-signin
+dash-social-signin[examples]
