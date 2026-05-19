@@ -1,213 +1,166 @@
-# Dash Social Signin
+# dash-social-signin
 
-A streamlined social sign-in toolkit for Dash. This package includes high-performance vanilla JS/CSS assets for rendering OAuth provider buttons and comprehensive server-side helpers for managing authorization endpoints and token verification. Designed to be lightweight, framework-agnostic on the frontend, and easy to integrate with existing Dash layouts.
+Social sign-in for Dash, made simple. Drop-in OAuth buttons and server-side helpers for authorization and token verification.
 
-> Note: OAuth requires a backend to exchange the authorization `code` for tokens. In Dash, the backend is your Dash server (Flask).
+## Supported providers
 
-## Install
+Google · Facebook · GitHub · X (Twitter) · LinkedIn · Microsoft · Apple · Discord · Slack
+
+## Why use it?
+
+**Built for Dash** — Most OAuth libraries are generic and don't account for Dash's layout system or asset pipeline. This package is built specifically for Dash.
+
+**One consistent API for all providers** — Every provider has quirks. Facebook uses a different token endpoint format. X requires PKCE. Apple requires a JWT as the client secret. This package smooths all of that over so you call the same functions regardless of provider.
+
+**Security built in** — PKCE prevents authorization code interception. A state token is generated per login attempt, stored server-side, and verified on callback. Tokens are never exposed to the browser — all exchange happens on your Flask/Dash backend.
+
+**Flexible** — Use the built-in `build_container()` for a ready-made UI, or skip it entirely and build your own buttons. The backend helpers work either way.
+
+---
+
+## Installation
 
 ```bash
 pip install dash-social-signin
 ```
 
-## Supported providers
+Store your provider credentials in a `.env` file. Use [.env.example](.env.example) as the template. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for step-by-step credential setup for all 9 providers.
 
-- Google
-- Facebook
-- GitHub
-- X (Twitter)
-- LinkedIn
-- Microsoft
-- Apple
-- Discord
-- Slack
+---
 
-Note: Some providers do not return userinfo. Apple returns `None` for userinfo.
+## Quick Start
 
-## Quick start
+The setup is split into three sections depending on your integration needs:
 
-1) Copy assets into your Dash app's `assets/` folder:
+- **Section A** — Using the default pre-styled buttons
+- **Section B** — Building your own custom buttons
+- **Section C** — The mandatory backend routes (required by both A and B)
+
+---
+
+## Section A — Using the Default Buttons
+
+The package ships ready-to-use styled OAuth buttons. Two steps to get them into your layout.
+
+**Step 1 — Copy assets into your app**
 
 ```python
 from dash_social_signin import install_assets
 
-# Point this to your Dash app's assets directory
 install_assets("./assets")
 ```
 
-2) Add a container with configuration:
+**Step 2 — Mount the container in your layout**
 
 ```python
+import os
 from dash import Dash, html
 from dash_social_signin import build_container
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Dash(__name__)
+app.server.secret_key = os.environ.get("DASH_SOCIAL_SIGNIN_SECRET", "change-me")
 
-app.layout = html.Div(
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8050")
+
+app.layout = html.Div([
     build_container(
         {
             "providers": {
                 "google": {
-                    "clientId": "YOUR_GOOGLE_CLIENT_ID",
-                    "redirectUri": "https://your.app/auth/callback",
+                    "clientId": os.environ.get("GOOGLE_CLIENT_ID"),
+                    "redirectUri": f"{BASE_URL}/auth/callback?provider=google",
+                    "authUrl": f"{BASE_URL}/auth/start",
+                    "extraParams": {"provider": "google"},
                     "scope": "openid email profile",
-                    "state": "abc123"
                 },
                 "github": {
-                    "clientId": "YOUR_GITHUB_CLIENT_ID",
-                    "redirectUri": "https://your.app/auth/callback",
-                    "scope": "read:user user:email"
-                }
+                    "clientId": os.environ.get("GITHUB_CLIENT_ID"),
+                    "redirectUri": f"{BASE_URL}/auth/callback?provider=github",
+                    "authUrl": f"{BASE_URL}/auth/start",
+                    "extraParams": {"provider": "github"},
+                    "scope": "read:user user:email",
+                },
             }
         },
-        id="social-signin"
+        id="social-signin",
     )
-)
-
-if __name__ == "__main__":
-    app.run_server(debug=True)
+])
 ```
 
-3) Add your social credentials to a `.env` file and use `.env.example` as the template.
+The JS renders the buttons into the container automatically. `authUrl` points to your `/auth/start` backend route — see Section C.
 
-The JS will render buttons into the container automatically.
+---
 
-## Example app
+## Section B — Building Custom Buttons
 
-See [examples/app.py](examples/app.py) for a runnable demo.
+You can skip `install_assets()` and `build_container()` entirely and design your own layout. The only requirement is that your buttons link to `/auth/start` with the right query parameters.
 
-The example includes placeholders for all supported providers.
-
-Install example extras:
-
-```bash
-pip install "dash-social-signin[examples]"
-```
-
-Set provider credentials as environment variables before running the example:
-
-```bash
-export GOOGLE_CLIENT_ID="your-google-client-id"
-export GOOGLE_CLIENT_SECRET="your-google-client-secret"
-```
-
-You can also use a `.env` file. Use `.env.example` as a guide.
-
-Use the same pattern for other providers, e.g. `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`.
-
-If you use the PKCE start route, set `DASH_SOCIAL_SIGNIN_SECRET` to enable Flask sessions. See .env.example for the full list.
-
-Set `BASE_URL` to match your deployment origin. Defaults to `http://localhost:8050` if not set:
-
-```bash
-# local dev
-BASE_URL=http://localhost:8050
-
-# tunnel or production
-BASE_URL=https://your-tunnel-or-domain.com
-```
-
-```bash
-python examples/app.py
-```
-
-## Minimal backend callback example (Flask, Google)
-
-This is the smallest possible server-side route that receives the authorization `code` and exchanges it for tokens with Google.
-It includes optional PKCE support (recommended) and a simple userinfo fetch.
+This example uses `dash-bootstrap-components` and Font Awesome:
 
 ```python
-import base64
-import hashlib
+import os
+import dash
+import dash_bootstrap_components as dbc
+from dash import html
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME]
+)
+app.server.secret_key = os.environ.get("DASH_SOCIAL_SIGNIN_SECRET", "change-me")
+
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8050")
+
+app.layout = html.Div([
+    html.H3("Sign in to your account"),
+    html.A(
+        dbc.Button(
+            [html.I(className="fab fa-google me-2"), "Continue with Google"],
+            color="danger",
+            outline=True,
+            className="d-flex align-items-center px-4 py-2",
+        ),
+        href=f"/auth/start?provider=google&scope=openid email profile&redirectUri={BASE_URL}/auth/callback?provider=google",
+        style={"textDecoration": "none"},
+    )
+], className="d-flex flex-column align-items-center justify-content-center vh-100")
+```
+
+Any button or link that hits `/auth/start?provider=<name>&scope=<scopes>` will work.
+
+---
+
+## Section C — The Mandatory Backend Routes
+
+Both Section A and Section B rely on the same two server-side routes. These handle state generation, PKCE, and token exchange.
+
+### 1. `/auth/start` — Initiate the login
+
+Generates a PKCE verifier and a CSRF state token, stores them in the session, then redirects the user to the provider.
+
+```python
 import os
 import secrets
-import requests
-from flask import request, redirect, session
-
-def build_pkce_verifier() -> str:
-    return secrets.token_urlsafe(64)
-
-def build_pkce_challenge(verifier: str) -> str:
-    digest = hashlib.sha256(verifier.encode("utf-8")).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
-
-@app.server.route("/auth/callback")
-def auth_callback():
-    code = request.args.get("code")
-    if not code:
-        return "Missing code", 400
-
-    token_url = "https://oauth2.googleapis.com/token"
-    data = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": "https://your.app/auth/callback",
-        "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
-        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
-    }
-
-    # Optional PKCE: store the verifier in session before the auth redirect
-    # and send it here. If you did not use PKCE, remove this field.
-    code_verifier = session.get("pkce_verifier")
-    if code_verifier:
-        data["code_verifier"] = code_verifier
-
-    resp = requests.post(token_url, data=data, timeout=10)
-    resp.raise_for_status()
-    tokens = resp.json()
-
-    userinfo = requests.get(
-        "https://openidconnect.googleapis.com/v1/userinfo",
-        headers={"Authorization": f"Bearer {tokens.get('access_token')}"},
-        timeout=10,
-    ).json()
-
-    # TODO: create a session / set cookies, then redirect into the app
-    return redirect("/")
-```
-
-## Verification helpers (Dash server)
-
-These helpers run on the same Dash server process to exchange the `code` for tokens and fetch a user profile when supported.
-
-Store provider credentials in environment variables (or your secrets manager) and pass them into the helper.
-
-```python
-from flask import request
-from dash_social_signin import verify_oauth_callback
-
-@app.server.route("/auth/callback")
-def auth_callback():
-    provider = request.args.get("provider")
-    code = request.args.get("code")
-    if not provider or not code:
-        return "Missing provider or code", 400
-
-    tokens, userinfo = verify_oauth_callback(
-        provider=provider,
-        code=code,
-        redirect_uri=f"https://your.app/auth/callback?provider={provider}",
-        client_id="YOUR_CLIENT_ID",
-        client_secret="YOUR_CLIENT_SECRET",
-    )
-
-    # TODO: create a session / set cookies, then redirect into the app
-    return "Signed in"
-```
-
-## PKCE start route (Dash server)
-
-Use a small server route to generate a PKCE verifier and redirect to the provider. Then point `authUrl` to this route.
-
-```python
 from flask import redirect, request, session
 from dash_social_signin import build_authorize_url, build_pkce_challenge, build_pkce_verifier
+from dash_social_signin.oauth import PROVIDER_CONFIG
+
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8050")
 
 @app.server.route("/auth/start")
 def auth_start():
     provider = request.args.get("provider")
-    if not provider:
-        return "Missing provider", 400
+    if not provider or provider not in PROVIDER_CONFIG:
+        return "Invalid provider", 400
+
+    state = secrets.token_urlsafe(16)
+    session[f"oauth_state:{provider}"] = state
 
     verifier = build_pkce_verifier()
     session[f"pkce_verifier:{provider}"] = verifier
@@ -215,65 +168,148 @@ def auth_start():
 
     auth_url = build_authorize_url(
         provider=provider,
-        client_id="YOUR_CLIENT_ID",
-        redirect_uri=f"https://your.app/auth/callback?provider={provider}",
+        client_id=os.environ.get(f"{provider.upper()}_CLIENT_ID"),
+        redirect_uri=f"{BASE_URL}/auth/callback?provider={provider}",
         scope=request.args.get("scope"),
-        state=request.args.get("state"),
-        response_type=request.args.get("response_type", "code"),
+        state=state,
         code_challenge=challenge,
     )
 
     return redirect(auth_url)
 ```
 
-## Redirect URI reference
+### 2. `/auth/callback` — Handle the provider redirect
 
-Register these exact URLs in each provider's developer console. Replace `https://your.app` with your actual domain.
+Validates the state, exchanges the authorization code for tokens, and fetches the user's profile.
 
-| Provider  | Redirect URI                                                  |
-|-----------|---------------------------------------------------------------|
-| Google    | `https://your.app/auth/callback?provider=google`    |
-| Facebook  | `https://your.app/auth/callback?provider=facebook`  |
-| GitHub    | `https://your.app/auth/callback?provider=github`    |
-| X         | `https://your.app/auth/callback?provider=x`         |
-| LinkedIn  | `https://your.app/auth/callback?provider=linkedin`  |
-| Microsoft | `https://your.app/auth/callback?provider=microsoft` |
-| Apple     | `https://your.app/auth/callback?provider=apple`     |
-| Discord   | `https://your.app/auth/callback?provider=discord`   |
-| Slack     | `https://your.app/auth/callback?provider=slack`     |
+```python
+import os
+from flask import jsonify, request, session
+from dash_social_signin import verify_oauth_callback
 
-For local development, replace `https://your.app` with `http://localhost:8050`.
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:8050")
 
-## Provider config
+@app.server.route("/auth/callback", methods=["GET", "POST"])
+def auth_callback():
+    # Apple sends a POST; all other providers send a GET
+    get_param = lambda k: request.args.get(k) or request.form.get(k)
 
-Each provider accepts:
+    provider = get_param("provider")
+    code = get_param("code")
+    if not provider or not code:
+        return "Missing provider or code", 400
 
-- `clientId` (required)
-- `redirectUri` (required)
-- `scope` (optional, provider specific)
-- `state` (optional)
-- `responseType` (optional, default `code`)
-- `extraParams` (optional dict of additional query params)
-- `userinfoParams` (optional dict of params to send to your backend start route)
-- `authUrl` (optional override)
+    # CSRF check
+    returned_state = get_param("state")
+    expected_state = session.pop(f"oauth_state:{provider}", None)
+    if expected_state and returned_state != expected_state:
+        return "Invalid state", 400
 
-When using a backend start route (like `/auth/start`), `userinfoParams` is serialized to
-the `userinfo_params` query param. The example app reads this value, stores it in the
-session, and passes it into `verify_oauth_callback` as `extra_userinfo_params`.
+    code_verifier = session.pop(f"pkce_verifier:{provider}", None)
 
-## Backend exchange
+    tokens, userinfo = verify_oauth_callback(
+        provider=provider,
+        code=code,
+        redirect_uri=f"{BASE_URL}/auth/callback?provider={provider}",
+        client_id=os.environ.get(f"{provider.upper()}_CLIENT_ID"),
+        client_secret=os.environ.get(f"{provider.upper()}_CLIENT_SECRET"),
+        code_verifier=code_verifier,
+    )
 
-After the redirect, your Dash server should handle the `code` query param and exchange it for tokens using the provider's OAuth token endpoint.
+    # At this point you have the user's profile.
+    # Save to your database, set a session cookie, redirect to your dashboard.
+    return jsonify({"provider": provider, "userinfo": userinfo})
+```
+
+---
+
+## Security features
+
+**PKCE** — Before redirecting the user, a random verifier is generated and stored server-side. A SHA-256 hash of it (the challenge) is sent to the provider. When the code comes back, the verifier is sent with the token request. The provider checks they match — an intercepted code is useless without the verifier.
+
+**CSRF protection via state** — A random token is generated per login attempt and stored in the session. The provider echoes it back in the callback. If it doesn't match, the request is rejected.
+
+**Tokens stay on the server** — The browser never sees your client secret or access tokens. In production, store tokens in your database and give the user a session cookie — never return raw tokens to the frontend.
+
+---
+
+## Running your app
+
+```python
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8050))
+    app.run(host="0.0.0.0", port=port, debug=True)
+```
+
+---
+
+## Deployment
+
+Set these environment variables before deploying (Use [.env.example](.env.example) as the template):
+
+```bash
+BASE_URL=https://your-domain.com
+DASH_SOCIAL_SIGNIN_SECRET=a-long-random-string
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+# etc.
+```
+
+Register your callback URL in each provider's developer console. The pattern is always:
+
+```
+https://your-domain.com/auth/callback?provider=PROVIDER_NAME
+```
+
+For local development replace with `http://localhost:8050`.
+
+| Provider  | Redirect URI                                                   |
+|-----------|----------------------------------------------------------------|
+| Google    | `https://your-domain.com/auth/callback?provider=google`     |
+| Facebook  | `https://your-domain.com/auth/callback?provider=facebook`   |
+| GitHub    | `https://your-domain.com/auth/callback?provider=github`     |
+| X         | `https://your-domain.com/auth/callback?provider=x`          |
+| LinkedIn  | `https://your-domain.com/auth/callback?provider=linkedin`   |
+| Microsoft | `https://your-domain.com/auth/callback?provider=microsoft`  |
+| Apple     | `https://your-domain.com/auth/callback?provider=apple`      |
+| Discord   | `https://your-domain.com/auth/callback?provider=discord`    |
+| Slack     | `https://your-domain.com/auth/callback?provider=slack`      |
+
+---
+
+## What this package does NOT do
+
+It handles OAuth. What you do after that — saving users to a database, managing sessions, handling logout, registration flows — is up to you. This is intentional. Every app has different requirements, and this package shouldn't force a database or session library on you.
+
+After `verify_oauth_callback()` returns `userinfo`, you have the user's name, email, and profile picture. The rest is your app's business logic.
+
+---
+
+## Example app
+
+See [examples/app.py](examples/app.py) for a full runnable demo covering all 9 providers.
+
+```bash
+pip install "dash-social-signin[examples]"
+python examples/app.py
+```
+
+---
+
+## Provider credential setup
+
+Full step-by-step setup guides for all 9 providers: [docs/PROVIDERS.md](docs/PROVIDERS.md)
+
+---
 
 ## Connect and contribute
 
-- PayPal: https://www.paypal.com/paypalme/omonbudeemma
+- PyPI: https://pypi.org/project/dash-social-signin
 - LinkedIn: https://www.linkedin.com/in/budescode
+- PayPal: https://www.paypal.com/paypalme/omonbudeemma
 
 ## License
 
 MIT
-
-## Provider credential setup
-
-Full step-by-step instructions live in [docs/PROVIDERS.md](docs/PROVIDERS.md).
