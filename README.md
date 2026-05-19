@@ -226,6 +226,24 @@ def auth_start():
     return redirect(auth_url)
 ```
 
+## Redirect URI reference
+
+Register these exact URLs in each provider's developer console. Replace `https://your.app` with your actual domain.
+
+| Provider  | Redirect URI                                                  |
+|-----------|---------------------------------------------------------------|
+| Google    | `https://your.app/auth/callback?provider=google`    |
+| Facebook  | `https://your.app/auth/callback?provider=facebook`  |
+| GitHub    | `https://your.app/auth/callback?provider=github`    |
+| X         | `https://your.app/auth/callback?provider=x`         |
+| LinkedIn  | `https://your.app/auth/callback?provider=linkedin`  |
+| Microsoft | `https://your.app/auth/callback?provider=microsoft` |
+| Apple     | `https://your.app/auth/callback?provider=apple`     |
+| Discord   | `https://your.app/auth/callback?provider=discord`   |
+| Slack     | `https://your.app/auth/callback?provider=slack`     |
+
+For local development, replace `https://your.app` with `http://localhost:8050`.
+
 ## Provider config
 
 Each provider accepts:

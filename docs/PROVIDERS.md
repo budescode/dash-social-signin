@@ -46,7 +46,7 @@ Steps:
 
 1) Open Meta for Developers and create an app.
 2) During app creation, select the "Authenticate and request data from users with Facebook Login" use case.
-3) Add the Facebook Login product (if it is not already added).
+3) In the left sidebar, click Use cases. Find "Authentication and account creation" and click Customize.
 4) In Facebook Login settings, add Valid OAuth Redirect URIs:
    - http://localhost:8050/auth/callback?provider=facebook
 5) In App settings -> Basic, copy App ID and App Secret.
