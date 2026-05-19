@@ -28,6 +28,8 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .pytype/
+.vscode/
+uv.lock
 
 # Logs
 *.log
@@ -38,4 +40,3 @@ htmlcov/
 # macOS
 .DS_Store
 examples/assets
-
