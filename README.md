@@ -304,7 +304,14 @@ Full step-by-step setup guides for all 9 providers: [docs/PROVIDERS.md](docs/PRO
 
 ---
 
-## Connect and contribute
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+- [Report a bug](.github/ISSUE_TEMPLATE/bug_report.md)
+- [Request a feature](.github/ISSUE_TEMPLATE/feature_request.md)
+
+## Connect
 
 - PyPI: https://pypi.org/project/dash-social-signin
 - LinkedIn: https://www.linkedin.com/in/budescode
